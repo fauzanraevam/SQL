@@ -1,0 +1,81 @@
+SELECT DISTINCT Data_Jupiter_Vega.territory_name_, Data_Jupiter_Vega.area_name_, Data_Jupiter_Vega.sub_area_name_, Data_Jupiter_Vega.city_name_, Model_VEGA, Model_JUPITER, Model_FORCE
+FROM
+  ( 
+    SELECT DISTINCT Data_Jupiter.territory_name_, Data_Jupiter.area_name_, Data_Jupiter.sub_area_name_, Data_Jupiter.city_name_, Model_Jupiter, Model_Vega
+    FROM
+      (  
+        SELECT DISTINCT territory_name_, area_name_, sub_area_name_, b.city_name_, Model_Jupiter
+        FROM
+          (  
+            SELECT city_name_, COUNT(city_name_) AS Model_JUPITER
+            FROM
+              (  
+                SELECT frame_no_, area_name_, sub_area_name_, city_name_, reg_date_, model_category_
+                FROM dpack_dealer_info
+                INNER JOIN
+                  (  
+                    SELECT frame_no_, site_id_, reg_date_, model_category_
+                    FROM dpack_sv_service_info_h
+                    WHERE sold_date_ >= '20070100' AND sold_date_ <= '20121231' AND reg_date_ < '20210900' AND model_category_ IN ('JUPITER N', 'JUPITER MX ACW','JUPITER Z','JUPITER Z1 FI','JUPITER Z CW','JUPITER Z CW FI','JUPITER-MX ACW','JUPITER MX CW','JUP MX CW')
+                  ) AS a
+                ON dpack_dealer_info.dealer_code_ = a.site_id_
+              )
+            GROUP BY city_name_
+          ) AS b
+        INNER JOIN dpack_dealer_info
+        ON b.city_name_ = dpack_dealer_info.city_name_
+        ORDER BY territory_name_
+      ) AS Data_Jupiter
+    FULL OUTER JOIN
+      (  
+        SELECT DISTINCT territory_name_, area_name_, sub_area_name_, b.city_name_, Model_VEGA
+        FROM
+          (  
+            SELECT city_name_, COUNT(city_name_) AS Model_VEGA
+            FROM
+              (  
+                SELECT frame_no_, area_name_, sub_area_name_, city_name_, reg_date_, model_category_
+                FROM dpack_dealer_info
+                INNER JOIN
+                  (  
+                    SELECT frame_no_, site_id_, reg_date_, model_category_
+                    FROM dpack_sv_service_info_h
+                    WHERE sold_date_ >= '20070100' AND sold_date_ <= '20121231' AND reg_date_ < '20210900' AND model_category_ IN ('VEGA RR','VEGA R','VEGA RD','VEGA ZRD')
+                  ) AS a
+                ON dpack_dealer_info.dealer_code_ = a.site_id_
+              )
+            GROUP BY city_name_
+          ) AS b
+        INNER JOIN dpack_dealer_info
+        ON b.city_name_ = dpack_dealer_info.city_name_
+        ORDER BY territory_name_
+      ) AS Data_Vega
+    ON Data_Jupiter.city_name_ = Data_Vega.city_name_
+    ORDER BY Data_Jupiter.territory_name_
+  ) AS Data_Jupiter_Vega
+FULL OUTER JOIN
+  (  
+    SELECT DISTINCT territory_name_, area_name_, sub_area_name_, b.city_name_, Model_FORCE
+    FROM
+      (  
+        SELECT city_name_, COUNT(city_name_) AS Model_FORCE
+        FROM
+          (  
+            SELECT frame_no_, area_name_, sub_area_name_, city_name_, reg_date_, model_category_
+            FROM dpack_dealer_info
+            INNER JOIN
+              (  
+                SELECT frame_no_, site_id_, reg_date_, model_category_
+                FROM dpack_sv_service_info_h
+                WHERE sold_date_ >= '20070100' AND sold_date_ <= '20121231' AND reg_date_ < '20210900' AND model_category_ IN ('VEGA FORCE DB CW')
+              ) AS a
+            ON dpack_dealer_info.dealer_code_ = a.site_id_
+          )
+        GROUP BY city_name_
+      ) AS b
+    INNER JOIN dpack_dealer_info
+    ON b.city_name_ = dpack_dealer_info.city_name_
+    ORDER BY territory_name_
+  ) AS Data_Force
+ON Data_Jupiter_Vega.city_name_ = Data_Force.city_name_
+ORDER BY Data_Jupiter_Vega.territory_name_
