@@ -1,0 +1,54 @@
+SELECT area_name_, COUNT(area_name_) AS Sold_Date_Jan_21_to_Mar_21
+FROM
+  (  
+    SELECT frame_no_, area_name_, Count_KSG, Count_KSB
+    FROM dpack_dealer_info
+    INNER JOIN
+      (
+        SELECT DISTINCT dpack_sv_service_info_h.frame_no_, site_id_, Count_KSG, Count_KSB
+        FROM dpack_sv_service_info_h
+        INNER JOIN
+          (
+            SELECT Target_KSG.frame_no_, Count_KSG, Count_KSB
+            FROM
+              (
+                SELECT frame_no_, Count_KSG
+                FROM
+                  (
+                    SELECT frame_no_, COUNT(service_category_) AS Count_KSG
+                    FROM 
+                      (
+                        SELECT frame_no_, sold_date_, reg_date_, site_id_, service_category_, total_amount_
+                        FROM dpack_sv_service_info_h
+                        WHERE sold_date_ > '20210100' AND sold_date_ < '20210400'
+                      ) AS case1
+                    WHERE reg_date_ > '20210100' AND service_category_ = 'KSG'
+                    GROUP BY frame_no_
+                  )
+                WHERE Count_KSG = 4
+              ) AS Target_KSG
+            INNER JOIN
+              (
+                SELECT frame_no_, Count_KSB
+                FROM
+                  (
+                    SELECT frame_no_, COUNT(service_category_) AS Count_KSB
+                    FROM 
+                      (
+                        SELECT frame_no_, sold_date_, reg_date_, site_id_, service_category_, total_amount_
+                        FROM dpack_sv_service_info_h
+                        WHERE sold_date_ > '20210100' AND sold_date_ < '20210400'
+                      ) AS case1
+                    WHERE reg_date_ > '20210100' AND service_category_ = 'KSB'
+                    GROUP BY frame_no_
+                  )
+                WHERE Count_KSB >= 3
+              ) AS Target_KSB
+            ON Target_KSG.frame_no_ = Target_KSB.frame_no_
+          ) AS Target_Case1
+        ON dpack_sv_service_info_h.frame_no_ = Target_Case1.frame_no_
+      ) AS Target_Case1_Dealer
+    ON dpack_dealer_info.dealer_code_ = Target_Case1_Dealer.site_id_
+  )
+WHERE area_name_ IN ('DDS JAKARTA', 'MD BALIKPAPAN', 'MD BANJARMASIN')
+GROUP BY area_name_
