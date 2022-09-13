@@ -1,0 +1,124 @@
+SELECT *
+FROM
+  (
+    SELECT STATUS, COUNT(STATUS) AS Qty_VIN
+    FROM
+      (
+        SELECT DISTINCT frame_no_, Current_Area, Last_Area,
+        CASE
+          WHEN Current_Area = Last_Area THEN 'EV'
+          WHEN Current_Area <> Last_Area THEN 'NV'
+          WHEN Current_Area IS NOT NULL AND Last_Area IS NULL THEN 'RV'
+        END AS STATUS
+        FROM
+          (
+            SELECT DISTINCT c.frame_no_, c.site_id_ AS Current_Dealer, c.area_name_ AS Current_Area, d.site_id_ AS Last_Dealer, d.area_name_ AS Last_Area
+            FROM
+              (
+                SELECT a.frame_no_, a.site_id_, area_name_
+                FROM
+                  (
+                    SELECT frame_no_, site_id_, Cek
+                    FROM
+                      (
+                        SELECT frame_no_, site_id_, reg_date_, ROW_NUMBER() 
+                        OVER 
+                          ( 
+                            PARTITION BY frame_no_
+                            ORDER BY frame_no_ DESC
+                          ) AS Cek
+                        FROM dpack_sv_service_info_h
+                        WHERE reg_date_ > '20220100' AND reg_date_ < '20220200'
+                      )
+                    WHERE Cek = 1
+                  ) AS a
+                LEFT JOIN dpack_dealer_info
+                ON a.site_id_ = dpack_dealer_info.dealer_code_
+              ) AS c
+            LEFT JOIN
+              (
+                SELECT b.frame_no_, b.site_id_, area_name_
+                FROM
+                  (
+                    SELECT frame_no_, site_id_, Cek
+                    FROM
+                      (
+                        SELECT frame_no_, site_id_, reg_date_, ROW_NUMBER() 
+                        OVER 
+                          ( 
+                            PARTITION BY frame_no_
+                            ORDER BY frame_no_ DESC
+                          ) AS Cek
+                        FROM dpack_sv_service_info_h
+                        WHERE reg_date_ > '20210700' AND reg_date_ < '20220100'
+                      )
+                    WHERE Cek = 1
+                  ) AS b
+                LEFT JOIN dpack_dealer_info
+                ON b.site_id_ = dpack_dealer_info.dealer_code_
+              ) AS d
+            ON c.frame_no_= d.frame_no_
+          )
+      )
+    GROUP BY STATUS
+UNION ALL
+  SELECT STATUS, COUNT(STATUS) AS Qty_VIN
+  FROM
+    (
+      SELECT DISTINCT frame_no_, Current_Area, Last_Area,
+      CASE
+        WHEN Current_Area IS NULL AND Last_Area IS NOT NULL THEN 'LV'
+      END AS STATUS
+      FROM
+        (  
+          SELECT DISTINCT c.frame_no_, c.site_id_ AS Last_Dealer, c.area_name_ AS Last_Area, d.site_id_ AS Current_Dealer, d.area_name_ AS Current_Area
+          FROM
+            (
+              SELECT a.frame_no_, a.site_id_, area_name_
+              FROM
+                (
+                  SELECT frame_no_, site_id_, Cek
+                  FROM
+                    (
+                      SELECT frame_no_, site_id_, reg_date_, ROW_NUMBER() 
+                      OVER 
+                        ( 
+                          PARTITION BY frame_no_
+                          ORDER BY frame_no_ DESC
+                        ) AS Cek
+                      FROM dpack_sv_service_info_h
+                      WHERE reg_date_ > '20210700' AND reg_date_ < '20210800'
+                    )
+                  WHERE Cek = 1
+                ) AS a
+              LEFT JOIN dpack_dealer_info
+              ON a.site_id_ = dpack_dealer_info.dealer_code_
+            ) AS c
+          LEFT JOIN
+            (
+              SELECT b.frame_no_, b.site_id_, area_name_
+              FROM
+                (
+                  SELECT frame_no_, site_id_, Cek
+                  FROM
+                    (
+                      SELECT frame_no_, site_id_, reg_date_, ROW_NUMBER() 
+                      OVER 
+                        ( 
+                        PARTITION BY frame_no_
+                        ORDER BY frame_no_ DESC
+                        ) AS Cek
+                      FROM dpack_sv_service_info_h
+                      WHERE reg_date_ > '20210800' AND reg_date_ < '20220200'
+                    )
+                  WHERE Cek = 1
+                ) AS b
+              LEFT JOIN dpack_dealer_info
+              ON b.site_id_ = dpack_dealer_info.dealer_code_
+            ) AS d
+          ON c.frame_no_= d.frame_no_
+        )
+      )
+    WHERE STATUS = 'LV'
+    GROUP BY STATUS
+  )
