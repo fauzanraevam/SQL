@@ -1,0 +1,189 @@
+SELECT DISTINCT l.frame_no_, l.customer_name_, l.plate_no_, l.telephone_no_,l.site_id_,Before_Service, l.Current_Service, After_Service, l.Case_Type AS Status, k.Case_Type AS Tipe
+FROM
+(
+  SELECT *
+  FROM
+  (  
+    SELECT *,
+    CASE 
+      WHEN Current_Service = Before_Service THEN 'SKY'
+      WHEN Current_Service <> Before_Service THEN 'Dealer'
+      WHEN Before_Service IS NULL THEN 'Lost'
+    END AS Case_Type
+    FROM
+      (  
+        SELECT e.frame_no_, e.customer_name_, e.plate_no_, e.telephone_no_, e.site_id_, e.category AS Current_Service, f.category AS Before_Service
+        FROM
+          (
+            SELECT *
+            FROM
+              (
+                SELECT g.frame_no_, ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_, category
+                FROM
+                  (
+                    SELECT frame_no_, a.h_id_ AS ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_
+                    FROM
+                      (
+                        SELECT frame_no_, h_id_, customer_name_, plate_no_,telephone_no_, site_id_
+                        FROM
+                          (
+                            SELECT frame_no_, h_id_, customer_name_, plate_no_,telephone_no_, site_id_, ROW_NUMBER() 
+                            OVER 
+                              ( 
+                                PARTITION BY frame_no_
+                                ORDER BY frame_no_ DESC
+                              ) AS Cek
+                            FROM dpack_sv_service_info_h
+                            WHERE reg_date_ > '20220100' AND reg_date_ < '20220200'
+                          )
+                        WHERE Cek = 1
+                      ) AS a 
+                      FULL JOIN
+                      (
+                        SELECT h_id_, service_package_
+                        FROM dpack_sv_service_info_jd
+                      ) AS c
+                      ON a.h_id_ = c.h_id_
+                  ) AS g
+                LEFT JOIN
+                  (
+                    SELECT dpack, category
+                    FROM service_package
+                  ) AS h
+                ON g.service_package_ =  h.dpack
+              )
+            WHERE category IN ('SKY Charge','SKY charge')
+          ) AS e
+        LEFT JOIN
+        ( 
+          SELECT *
+          FROM
+            (
+              SELECT i.frame_no_, ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_, category
+              FROM
+                (
+                  SELECT frame_no_, a.h_id_ AS ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_
+                  FROM
+                    (
+                      SELECT frame_no_, h_id_, customer_name_, plate_no_,telephone_no_, site_id_
+                      FROM
+                        (
+                          SELECT frame_no_, h_id_, customer_name_, plate_no_,telephone_no_, site_id_, ROW_NUMBER() 
+                          OVER 
+                            ( 
+                              PARTITION BY frame_no_
+                              ORDER BY frame_no_ DESC
+                            ) AS Cek
+                          FROM dpack_sv_service_info_h
+                          WHERE reg_date_ > '20210700' AND reg_date_ < '20211200'
+                        )
+                      WHERE Cek = 1
+                    ) AS a
+                  FULL JOIN
+                    (
+                      SELECT h_id_, service_package_
+                      FROM dpack_sv_service_info_jd
+                    ) AS c
+                  ON a.h_id_ = c.h_id_
+                ) AS i
+              LEFT JOIN
+                (
+                  SELECT dpack, category
+                  FROM service_package
+                ) AS j
+              ON i.service_package_ =  j.dpack
+            )
+          WHERE category IS NOT NULL
+        ) AS f
+      ON e.frame_no_ = f.frame_no_
+    )
+  )
+  WHERE Case_Type = 'Lost'
+) AS l
+LEFT JOIN
+(  
+  SELECT *,
+    CASE 
+      WHEN Current_Service = After_Service THEN 'Case 7'
+      WHEN Current_Service <> After_Service THEN 'Case 8'
+      WHEN After_Service IS NULL THEN 'Case 9'
+    END AS Case_Type
+    FROM
+      (  
+        SELECT e.frame_no_, e.customer_name_, e.plate_no_, e.telephone_no_, e.site_id_, e.category AS Current_Service, f.category AS After_Service
+        FROM
+          (
+            SELECT *
+            FROM
+              (
+              SELECT g.frame_no_, ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_, category
+              FROM
+                (
+                  SELECT frame_no_, a.h_id_ AS ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_
+                  FROM
+                    (
+                      SELECT frame_no_, h_id_, customer_name_, plate_no_,telephone_no_, site_id_, ROW_NUMBER() 
+                      OVER 
+                        ( 
+                          PARTITION BY frame_no_, reg_date_
+                          ORDER BY frame_no_, reg_date_ DESC
+                        ) AS Cek
+                      FROM dpack_sv_service_info_h
+                      WHERE reg_date_ > '20220100' AND reg_date_ < '20220200'
+                    ) AS a
+                    FULL JOIN
+                      (
+                        SELECT h_id_, service_package_
+                        FROM dpack_sv_service_info_jd
+                      ) AS c
+                    ON a.h_id_ = c.h_id_
+                ) AS g
+              LEFT JOIN
+                (
+                  SELECT dpack, category
+                  FROM service_package
+                ) AS h
+              ON g.service_package_ =  h.dpack
+            )
+            WHERE category IN ('SKY Charge','SKY charge')
+          ) AS e
+        LEFT JOIN
+          ( 
+            SELECT *
+            FROM
+            (
+              SELECT i.frame_no_, ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_, category
+              FROM
+                (
+                  SELECT frame_no_, a.h_id_ AS ID, customer_name_, plate_no_, telephone_no_, site_id_,service_package_
+                  FROM
+                      (
+                        SELECT frame_no_, h_id_, customer_name_, plate_no_,telephone_no_, site_id_, ROW_NUMBER() 
+                        OVER 
+                          ( 
+                            PARTITION BY frame_no_, reg_date_
+                            ORDER BY frame_no_, reg_date_ DESC
+                          ) AS Cek
+                        FROM dpack_sv_service_info_h
+                        WHERE reg_date_ > '20220200' AND reg_date_ < '20221000'
+                      ) AS a
+                    FULL JOIN
+                      (
+                        SELECT h_id_, service_package_
+                        FROM dpack_sv_service_info_jd
+                      ) AS c
+                    ON a.h_id_ = c.h_id_
+                ) AS i
+              LEFT JOIN
+                (
+                  SELECT dpack, category
+                  FROM service_package
+                ) AS j
+              ON i.service_package_ =  j.dpack
+            )
+            WHERE category IS NOT NULL
+          ) AS f
+        ON e.frame_no_ = f.frame_no_
+      )
+) AS k
+ON l.frame_no_ = k.frame_no_ 
